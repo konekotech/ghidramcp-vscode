@@ -14,8 +14,9 @@ GhidraMCP-vscode is a VS Code extension that provides integration with [GhidraMC
 ## Requirements
 
 - Python 3.12 or later
-- `bridge_mcp_ghidra.py` script and its requirements
+- `bridge_mcp_ghidra.py` script with PEP 723 dependencies specification
 - Ghidra server running (default: http://127.0.0.1:8080/)
+- **Recommended**: [uv](https://docs.astral.sh/uv/) for optimal PEP 723 dependency management
 
 ## Extension Settings
 
@@ -48,8 +49,8 @@ This extension contributes the following settings:
 
 When you start the server for the first time:
 
-1. The extension will create a Python virtual environment (if not configured otherwise)
-2. It will install dependencies from `requirements.txt` located in the same directory as the bridge script
+1. **With uv (recommended)**: The extension will use `uv run` to automatically handle PEP 723 dependencies from the script
+2. **Without uv**: The extension will create a Python virtual environment, parse PEP 723 dependencies from the script, and install them using pip
 3. It will start the bridge server with the configured parameters
 
 ## Troubleshooting

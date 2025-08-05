@@ -59,21 +59,39 @@ async function startServer(context: vscode.ExtensionContext) {
 
 	try {
 		// Setup virtual environment
-		const pythonPath = await setupVirtualEnvironment(context, bridgeScriptPath, venvPath);
+		const pythonCommand = await setupVirtualEnvironment(context, bridgeScriptPath, venvPath);
 		
 		// Start the server
-		const args = [
-			bridgeScriptPath,
-			'--transport', 'sse',
-			'--mcp-host', mcpHost,
-			'--mcp-port', mcpPort.toString(),
-			'--ghidra-server', ghidraServer
-		];
+		let command: string;
+		let args: string[];
+		
+		if (pythonCommand === 'uv') {
+			// Use uv run for PEP 723 dependency management
+			command = 'uv';
+			args = [
+				'run',
+				bridgeScriptPath,
+				'--transport', 'sse',
+				'--mcp-host', mcpHost,
+				'--mcp-port', mcpPort.toString(),
+				'--ghidra-server', ghidraServer
+			];
+		} else {
+			// Use traditional python execution
+			command = pythonCommand;
+			args = [
+				bridgeScriptPath,
+				'--transport', 'sse',
+				'--mcp-host', mcpHost,
+				'--mcp-port', mcpPort.toString(),
+				'--ghidra-server', ghidraServer
+			];
+		}
 
-		outputChannel.appendLine(`Starting Ghidra MCP server with command: ${pythonPath} ${args.join(' ')}`);
+		outputChannel.appendLine(`Starting Ghidra MCP server with command: ${command} ${args.join(' ')}`);
 		outputChannel.show();
 
-		serverProcess = spawn(pythonPath, args);
+		serverProcess = spawn(command, args);
 
 		serverProcess.stdout?.on('data', (data) => {
 			outputChannel.appendLine(`[STDOUT] ${data.toString()}`);
@@ -115,7 +133,138 @@ async function stopServer() {
 	vscode.window.showInformationMessage('Ghidra MCP server stopped');
 }
 
+async function checkUvAvailable(): Promise<boolean> {
+	return new Promise((resolve) => {
+		const uvCheck = spawn('uv', ['--version']);
+		
+		uvCheck.on('close', (code) => {
+			resolve(code === 0);
+		});
+
+		uvCheck.on('error', () => {
+			resolve(false);
+		});
+	});
+}
+
+async function installPep723Dependencies(bridgeScriptPath: string, venvPath: string): Promise<void> {
+	try {
+		// Parse PEP 723 dependencies from the script
+		const dependencies = await parsePep723Dependencies(bridgeScriptPath);
+		
+		if (dependencies.length === 0) {
+			outputChannel.appendLine('No PEP 723 dependencies found in script');
+			return;
+		}
+
+		outputChannel.appendLine(`Installing PEP 723 dependencies: ${dependencies.join(', ')}`);
+		
+		const pipPath = process.platform === 'win32' 
+			? path.join(venvPath, 'Scripts', 'pip.exe')
+			: path.join(venvPath, 'bin', 'pip');
+
+		await new Promise<void>((resolve) => {
+			const installDeps = spawn(pipPath, ['install', ...dependencies]);
+			
+			installDeps.stdout?.on('data', (data) => {
+				outputChannel.appendLine(`[PIP STDOUT] ${data.toString()}`);
+			});
+
+			installDeps.stderr?.on('data', (data) => {
+				outputChannel.appendLine(`[PIP STDERR] ${data.toString()}`);
+			});
+
+			installDeps.on('close', (code) => {
+				if (code === 0) {
+					outputChannel.appendLine('PEP 723 dependencies installed successfully');
+				} else {
+					outputChannel.appendLine(`pip install failed with exit code: ${code}`);
+				}
+				resolve();
+			});
+
+			installDeps.on('error', (error) => {
+				outputChannel.appendLine(`pip install error: ${error.message}`);
+				resolve();
+			});
+		});
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		outputChannel.appendLine(`Error installing PEP 723 dependencies: ${errorMessage}`);
+	}
+}
+
+async function parsePep723Dependencies(bridgeScriptPath: string): Promise<string[]> {
+	try {
+		const content = fs.readFileSync(bridgeScriptPath, 'utf-8');
+		const lines = content.split('\n');
+		
+		let inDependenciesBlock = false;
+		const dependencies: string[] = [];
+		
+		for (const line of lines) {
+			const trimmedLine = line.trim();
+			
+			// Check for start of script metadata block
+			if (trimmedLine === '# /// script') {
+				continue;
+			}
+			
+			// Check for end of script metadata block
+			if (trimmedLine === '# ///') {
+				break;
+			}
+			
+			// Check for dependencies array start
+			if (trimmedLine.startsWith('# dependencies = [')) {
+				inDependenciesBlock = true;
+				// Handle single-line dependencies array
+				const match = trimmedLine.match(/# dependencies = \[(.*)\]/);
+				if (match) {
+					const deps = match[1].split(',').map(dep => dep.trim().replace(/['"]/g, ''));
+					dependencies.push(...deps.filter(dep => dep.length > 0));
+					inDependenciesBlock = false;
+				}
+				continue;
+			}
+			
+			// If we're in the dependencies block, collect dependencies
+			if (inDependenciesBlock) {
+				if (trimmedLine.startsWith('#') && trimmedLine.includes('"')) {
+					// Extract dependency from line like: #     "requests>=2,<3",
+					const match = trimmedLine.match(/#\s*"([^"]+)"/);
+					if (match) {
+						dependencies.push(match[1]);
+					}
+				} else if (trimmedLine.includes(']')) {
+					// End of dependencies array
+					inDependenciesBlock = false;
+				}
+			}
+		}
+		
+		return dependencies;
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		outputChannel.appendLine(`Error parsing PEP 723 dependencies: ${errorMessage}`);
+		return [];
+	}
+}
+
 async function setupVirtualEnvironment(context: vscode.ExtensionContext, bridgeScriptPath: string, configuredVenvPath?: string): Promise<string> {
+	// Check if uv is available
+	const hasUv = await checkUvAvailable();
+	
+	if (hasUv) {
+		outputChannel.appendLine('Using uv for dependency management (PEP 723 support)');
+		// With uv, we can use `uv run` directly which handles PEP 723 dependencies
+		// No need to manage virtual environment manually
+		return 'uv';
+	}
+
+	// Fallback to traditional venv + pip approach
+	outputChannel.appendLine('uv not found, falling back to traditional venv + pip');
+	
 	const config = vscode.workspace.getConfiguration('ghidramcp');
 	let venvPath: string;
 
@@ -165,43 +314,8 @@ async function setupVirtualEnvironment(context: vscode.ExtensionContext, bridgeS
 		});
 	}
 
-	// Install requirements if requirements.txt exists
-	const bridgeDir = path.dirname(bridgeScriptPath);
-	const requirementsPath = path.join(bridgeDir, 'requirements.txt');
-	
-	if (fs.existsSync(requirementsPath)) {
-		outputChannel.appendLine(`Installing requirements from: ${requirementsPath}`);
-		await new Promise<void>((resolve, reject) => {
-			const pipPath = process.platform === 'win32' 
-				? path.join(venvPath, 'Scripts', 'pip.exe')
-				: path.join(venvPath, 'bin', 'pip');
-
-			const installReqs = spawn(pipPath, ['install', '-r', requirementsPath]);
-			
-			installReqs.stdout?.on('data', (data) => {
-				outputChannel.appendLine(`[PIP STDOUT] ${data.toString()}`);
-			});
-
-			installReqs.stderr?.on('data', (data) => {
-				outputChannel.appendLine(`[PIP STDERR] ${data.toString()}`);
-			});
-
-			installReqs.on('close', (code) => {
-				if (code === 0) {
-					outputChannel.appendLine('Requirements installed successfully');
-					resolve();
-				} else {
-					outputChannel.appendLine(`pip install failed with exit code: ${code}`);
-					resolve(); // Don't reject, just continue
-				}
-			});
-
-			installReqs.on('error', (error) => {
-				outputChannel.appendLine(`pip install error: ${error.message}`);
-				resolve(); // Don't reject, just continue
-			});
-		});
-	}
+	// Install PEP 723 dependencies by parsing the script
+	await installPep723Dependencies(bridgeScriptPath, venvPath);
 
 	return pythonPath;
 }
