@@ -1,0 +1,81 @@
+{
+  "name": "ghidramcp",
+  "displayName": "Ghidra MCP Bridge",
+  "description": "VS Code extension for managing Ghidra Model Context Protocol bridge server",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.102.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ghidramcp.startServer",
+        "title": "Start Ghidra MCP Server"
+      },
+      {
+        "command": "ghidramcp.stopServer",
+        "title": "Stop Ghidra MCP Server"
+      }
+    ],
+    "configuration": {
+      "title": "Ghidra MCP",
+      "properties": {
+        "ghidramcp.bridgeScriptPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to bridge_mcp_ghidra.py script"
+        },
+        "ghidramcp.venvPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Python virtual environment (if empty, will create in extension cache)"
+        },
+        "ghidramcp.mcpHost": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "MCP server host"
+        },
+        "ghidramcp.mcpPort": {
+          "type": "number",
+          "default": 8081,
+          "description": "MCP server port"
+        },
+        "ghidramcp.ghidraServer": {
+          "type": "string",
+          "default": "http://127.0.0.1:8080/",
+          "description": "Ghidra server URL"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.102.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3",
+    "ts-loader": "^9.5.2",
+    "webpack": "^5.99.7",
+    "webpack-cli": "^6.0.1",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
