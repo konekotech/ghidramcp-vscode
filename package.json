@@ -2,7 +2,7 @@
   "name": "ghidramcp",
   "displayName": "Ghidra MCP Bridge",
   "description": "VS Code extension for managing GhidraMCP bridge server",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "konekotech",
   "publisher": "konekotech",
   "repository": {
