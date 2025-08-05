@@ -1,8 +1,9 @@
 {
   "name": "ghidramcp",
   "displayName": "Ghidra MCP Bridge",
-  "description": "VS Code extension for managing Ghidra Model Context Protocol bridge server",
+  "description": "VS Code extension for managing GhidraMCP bridge server",
   "version": "0.0.1",
+  "author": "konekotech",
   "engines": {
     "vscode": "^1.102.0"
   },

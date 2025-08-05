@@ -11,7 +11,7 @@ GhidraMCP is a VS Code extension that provides integration with Ghidra through a
 
 ## Requirements
 
-- Python 3.6 or later
+- Python 3.12 or later
 - `bridge_mcp_ghidra.py` script and its requirements
 - Ghidra server running (default: http://127.0.0.1:8080/)
 
@@ -53,7 +53,7 @@ When you start the server for the first time:
 ## Troubleshooting
 
 - **Server won't start**: Check that the bridge script path is correct and the file exists
-- **Python errors**: Ensure Python 3.6+ is installed and accessible via `python3` command
+- **Python errors**: Ensure Python 3.12+ is installed and accessible via `python3` command
 - **Connection issues**: Verify that Ghidra server is running and accessible at the configured URL
 - **Logs**: Always check the "Ghidra MCP" output panel for detailed error information
 
