@@ -1,6 +1,8 @@
-# ghidraMCP README
+# ghidraMCP-vscode
 
-GhidraMCP is a VS Code extension that provides integration with Ghidra through a Model Context Protocol (MCP) bridge server.
+GhidraMCP-vscode is a VS Code extension that provides integration with ![GhidraMCP](https://github.com/LaurieWired/GhidraMCP).
+
+**NOTICE**: This extension is unofficial and not affiliated with the Ghidra project or its maintainers.
 
 ## Features
 
