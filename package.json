@@ -4,6 +4,11 @@
   "description": "VS Code extension for managing GhidraMCP bridge server",
   "version": "0.0.1",
   "author": "konekotech",
+  "publisher": "konekotech",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/konekotech/ghidramcp-vscode.git"
+  },
   "engines": {
     "vscode": "^1.102.0"
   },
