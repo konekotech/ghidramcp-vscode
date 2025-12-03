@@ -41,19 +41,32 @@ async function startServer(context: vscode.ExtensionContext) {
 	}
 
 	const config = vscode.workspace.getConfiguration('ghidramcp');
-	const bridgeScriptPath = config.get<string>('bridgeScriptPath');
+	// `bridgeScriptPath` can be a string or an object containing per-OS paths
+	const bridgeScriptPathConfig = config.get<any>('bridgeScriptPath');
+	let bridgeScriptPath: string | undefined;
+	if (typeof bridgeScriptPathConfig === 'string') {
+		bridgeScriptPath = bridgeScriptPathConfig;
+	} else if (bridgeScriptPathConfig && typeof bridgeScriptPathConfig === 'object') {
+		const platform = process.platform; // 'win32' | 'darwin' | 'linux'
+		// Prefer exact platform key, then 'default', then fallback to any available entry
+		bridgeScriptPath = bridgeScriptPathConfig[platform] || bridgeScriptPathConfig['default'];
+		if (!bridgeScriptPath) {
+			// pick first defined entry (win32/darwin/linux)
+			bridgeScriptPath = bridgeScriptPathConfig['win32'] || bridgeScriptPathConfig['darwin'] || bridgeScriptPathConfig['linux'];
+		}
+	}
 	const venvPath = config.get<string>('venvPath');
 	const mcpHost = config.get<string>('mcpHost', '127.0.0.1');
 	const mcpPort = config.get<number>('mcpPort', 8081);
 	const ghidraServer = config.get<string>('ghidraServer', 'http://127.0.0.1:8080/');
 
 	if (!bridgeScriptPath) {
-		vscode.window.showErrorMessage('Please configure the bridge script path in settings');
+		vscode.window.showErrorMessage('Please configure the bridge script path in settings (supports OS-specific object or a single string)');
 		return;
 	}
 
 	if (!fs.existsSync(bridgeScriptPath)) {
-		vscode.window.showErrorMessage(`Bridge script not found: ${bridgeScriptPath}`);
+		vscode.window.showErrorMessage(`Bridge script not found for this platform: ${bridgeScriptPath}`);
 		return;
 	}
 

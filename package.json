@@ -32,9 +32,24 @@
       "title": "Ghidra MCP",
       "properties": {
         "ghidramcp.bridgeScriptPath": {
-          "type": "string",
-          "default": "",
-          "description": "Path to bridge_mcp_ghidra.py script"
+          "oneOf": [
+            {
+              "type": "string",
+              "default": "",
+              "description": "Path to bridge_mcp_ghidra.py script (single path for all platforms)"
+            },
+            {
+              "type": "object",
+              "description": "Object with OS-specific paths. Supported keys: 'win32', 'darwin', 'linux', 'default'",
+              "properties": {
+                "win32": { "type": "string" },
+                "darwin": { "type": "string" },
+                "linux": { "type": "string" },
+                "default": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          ]
         },
         "ghidramcp.venvPath": {
           "type": "string",
