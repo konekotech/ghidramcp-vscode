@@ -22,11 +22,55 @@ GhidraMCP-vscode is a VS Code extension that provides integration with [GhidraMC
 
 This extension contributes the following settings:
 
-* `ghidramcp.bridgeScriptPath`: Path to the bridge_mcp_ghidra.py script (required)
-* `ghidramcp.venvPath`: Path to Python virtual environment (optional - if empty, will create in extension cache)
-* `ghidramcp.mcpHost`: MCP server host (default: 127.0.0.1)
-* `ghidramcp.mcpPort`: MCP server port (default: 8081)  
-* `ghidramcp.ghidraServer`: Ghidra server URL (default: http://127.0.0.1:8080/)
+- `ghidramcp.bridgeScriptPath`: Path to the `bridge_mcp_ghidra.py` script. This setting accepts either a single string (path used on all platforms) or an object with OS-specific paths. See examples below.
+- `ghidramcp.venvPath`: Path to Python virtual environment (optional - if empty, will create in extension cache)
+- `ghidramcp.mcpHost`: MCP server host (default: 127.0.0.1)
+- `ghidramcp.mcpPort`: MCP server port (default: 8081)
+- `ghidramcp.ghidraServer`: Ghidra server URL (default: http://127.0.0.1:8080/)
+
+### `bridgeScriptPath` examples
+
+The `bridgeScriptPath` setting can be provided in multiple ways. The extension resolves the value in this order:
+
+- If a string is configured, that path is used for all platforms.
+- If an object is configured, the extension looks for a key matching the current `process.platform` (`win32`, `darwin`, `linux`).
+- If no exact key is found the extension falls back to `default` (if present), and finally to the first available of `win32`/`darwin`/`linux`.
+
+Examples to add to your `settings.json`:
+
+- Single path (use on all platforms):
+
+```json
+"ghidramcp.bridgeScriptPath": "C:\\path\\to\\bridge_mcp_ghidra.py"
+```
+
+- Unix-style single path:
+
+```json
+"ghidramcp.bridgeScriptPath": "/usr/local/bin/bridge_mcp_ghidra.py"
+```
+
+- OS-specific object (recommended):
+
+```json
+"ghidramcp.bridgeScriptPath": {
+   "win32": "C:\\tools\\ghidra\\bridge_mcp_ghidra.py",
+   "darwin": "/Users/me/ghidra/bridge_mcp_ghidra.py",
+   "linux": "/home/me/ghidra/bridge_mcp_ghidra.py",
+   "default": "/usr/local/bin/bridge_mcp_ghidra.py"
+}
+```
+
+- Minimal OS-specific example (Windows + Linux):
+
+```json
+"ghidramcp.bridgeScriptPath": {
+   "win32": "C:\\tools\\ghidra\\bridge_mcp_ghidra.py",
+   "linux": "/home/me/ghidra/bridge_mcp_ghidra.py"
+}
+```
+
+Note: this extension does not currently expand VS Code variables like `${workspaceFolder}` or resolve relative paths automatically. If you want these behaviors, let me know and I can add support to resolve common variable patterns and workspace-relative paths.
 
 ## Usage
 
